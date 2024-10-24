@@ -8,6 +8,8 @@ from flask_cors import CORS
 import bcrypt
 import hashlib
 import base64
+import numpy as np
+
 
 client = MongoClient("mongodb+srv://root:root123@atlascluster.uu7phqt.mongodb.net/?retryWrites=true&w=majority&appName=AtlasCluster")
 db = client.mywebsite #選db
@@ -48,36 +50,50 @@ def my_aip():
     else:
         return redirect("/login")
 
-@app.route("/for_load_img",methods =['POST'])
+@app.route("/for_load_img",methods =['POST']) #處理輸入照片
 def for_load_img():
-    
-    file = request.files['file'] 
-
+    file = request.files['file']
     if file:
-        
-        _ ,fileextension = os.path.splitext(file.filename)
-        filename =  session["name"] + fileextension
-        filepath = os.path.join('static/img', filename)
-        file.save(filepath)
-        global gray_filepath, histogram_filepath
-        gray_filepath = aip.img_to_gray(filepath,filename)
-        histogram_filepath = aip.img_to_histogram(gray_filepath, filename)
-        gaussion_noise_filepath = aip.img_to_gaussion_noise(gray_filepath, filename)
-        haar_wavelet_filepath = aip.img_to_haar_wavelet(gray_filepath, filename)
-        histogram_equalization_filepath = aip.img_to_histogram_equalization(gray_filepath, filename)
-        global response
-        response = jsonify(gray=gray_filepath[6:] ,histogram = histogram_filepath[6:] \
-            ,gaussion_noise = gaussion_noise_filepath[6:] , haar_wavelet = haar_wavelet_filepath[6:]\
-            ,histogram_equalization = histogram_equalization_filepath[6:])
-        return response
+        npimg = np.frombuffer(file.read(), np.uint8)
+        gray_img = aip.img_to_gray(npimg) #照片
+        result = db.users_createphoto.find_one({"name" : session["name"]})
+        if result is None: 
+            db.users_createphoto.insert_one({
+                "name" : session["name"],
+                "gray_img" : gray_img})
+        else:
+            db.users_createphoto.update_one(
+                {"name" : session["name"]},     # 查找條件
+                {"$set": {"gray_img": gray_img }})  # 更新操作
+        return jsonify({"gray_img": gray_img})
     else:
         return jsonify(success=False)
 
 @app.route("/for_load_aip_img",methods=['POST'])
 def for_load_aip_img():
-    #file = request.form.get('updatetype')
-    return response
+    updatetype = request.form.get('updatetype') #選處理方式
+    img = db.users_createphoto.find_one({"name" : session["name"]})
+    if img is not None:
+        gray_img = img.get("gray_img")
+        if updatetype == "histogram":
+            update_img = aip.img_to_histogram(gray_img)
+            print("AAAAAAAAAAAAAAAA")
+        elif updatetype == "gaussion_noise":
+            update_img = aip.img_to_gaussion_noise(gray_img)
+        elif updatetype == "haar_wavelet":
+            update_img = aip.img_to_haar_wavelet(gray_img)
+        elif updatetype == "histogram_equalization":
+            update_img = aip.img_to_histogram_equalization(gray_img)
+            
+        db.users_createphoto.update_one(
+            {"name": session["name"]},           # 查找條件
+            {"$set": { updatetype : update_img}})  # 使用 $push 新增資料到 photo 欄位
+        print("BBBBBBBBBBBBBBBB")
+        return jsonify({updatetype : update_img})
+    return jsonify(success = False)
 
+
+    
 @app.route("/member") #首頁
 def member():
     if "name" in session:
@@ -99,7 +115,6 @@ def signup():
     salt = salt.replace('+', '.').replace('/', '.')[:22]
     salt = f"$2b$12${salt}"
     password = bcrypt.hashpw(password.encode('utf-8'), salt.encode('utf-8'))  # 雜湊密碼
-    #處理db
     collection = db.users
     result = collection.find_one({
         "email":email
@@ -128,9 +143,6 @@ def signin():
     salt = salt.replace('+', '.').replace('/', '.')[:22]
     salt = f"$2b$12${salt}"
     password = bcrypt.hashpw(password.encode('utf-8'), salt.encode('utf-8'))  # 雜湊密碼
-
-    print(password)
-    
     collection = db.users #使用user database
     result = collection.find_one({
         "$and":[

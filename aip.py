@@ -3,26 +3,33 @@ import cv2
 import math
 import random
 import os
+import base64
 
-def img_to_gray(image_path , filename):
-    img = cv2.imread(image_path)
-    gray_img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    gray_img = cv2.resize(gray_img,(512,512),interpolation=cv2.INTER_AREA)
-    gray_filepath = os.path.join('static/img','aip_'+ 'gray_' + filename  )
-    cv2.imwrite(gray_filepath,gray_img)
-    return gray_filepath
 
-def img_to_histogram(image_path , filename):
-    img = cv2.imread(image_path)
-    hist = cv2.calcHist([img], [0], None, [256], [0, 256])
+
+def img_to_gray(npimg):
+    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.resize(img, (512, 512), interpolation=cv2.INTER_AREA)
+    _, img = cv2.imencode('.jpg', img)
+    img = base64.b64encode(img).decode('utf-8')
+    return img  # 返回 Base64 字符串
+
+def img_to_histogram(npimg):
+    img = base64.b64decode(npimg)  # 將 Base64 字符串解碼為二進制數據
+    img = np.frombuffer(img, np.uint8)  # 將二進制資料轉換為 NumPy array
+    img = cv2.imdecode(img, cv2.IMREAD_COLOR)  # 使用 OpenCV 進行解碼
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # 轉換為灰度圖像
+    img = cv2.calcHist([img], [0], None, [256], [0, 256])
     hist_img = np.zeros((512, 512, 3), dtype=np.uint8)
-    cv2.normalize(hist, hist, 0, 512, cv2.NORM_MINMAX)
-    bin_width = 512 // 256  # 每個bin的寬度
-    for x, y in enumerate(hist):
-        cv2.rectangle(hist_img, (x * bin_width, 512), ((x + 1) * bin_width, 512 - int(y)), (255, 255, 255), -1)
-    histogram_filepath = os.path.join('static/img', 'aip_'+ 'histogram_' + filename)
-    cv2.imwrite(histogram_filepath, hist_img)
-    return histogram_filepath
+    cv2.normalize(img, img, 0, 512, cv2.NORM_MINMAX)
+    bin_width = 512 // 256 
+    for x in range(256):
+        cv2.rectangle(hist_img, (x * bin_width, 512), ((x + 1) * bin_width, 512 - int(img[x])), (255, 255, 255), -1)
+    _, hist_img = cv2.imencode('.jpg', hist_img)    # 將處理過的圖像編碼為 JPEG 格式
+    hist_img = base64.b64encode(hist_img).decode('utf-8')# 將圖像轉換回 Base64 字符串
+    return hist_img
+
 
 def img_to_gaussion_noise(image_path, filename):
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)

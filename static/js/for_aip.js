@@ -7,9 +7,6 @@
 // Scripts
 // 
 
-let images = {}
-
-
 window.addEventListener('DOMContentLoaded', event => {
 
     // Activate Bootstrap scrollspy on the main nav element
@@ -55,7 +52,7 @@ window.addEventListener('DOMContentLoaded', event => {
         .then(response =>  response.json())
         .then(data => {
             if (data) {
-                const imageUrl = `${data.gray}?v=${Date.now()}`;
+                const imageUrl = `data:image/jpeg;base64,${data.gray_img}`;
                 document.getElementById('selectedImage').src = imageUrl;
             } 
             
@@ -74,48 +71,13 @@ window.addEventListener('DOMContentLoaded', event => {
         .then(response =>  response.json())
         .then(data => {
             if (data) {
-                const imageUrl = `${data[filterType]}?v=${Date.now()}`;
+                const imageUrl = `data:image/jpeg;base64,${data[filterType]}`
                 document.getElementById('additionalImage').src = imageUrl;
                 
             } 
         })
-        // const imgSrc = images[filterType];
-        // var baseUrl = "/img/";
-        // var imgSrc = "";
-        // switch (filterType) {
-        //     case 'histogram':
-        //         imgSrc = baseUrl + "histogram_01.webp";
-        //         break;
-        //     case 'gaussian':
-        //         imgSrc = baseUrl + "gaussian.jpg";
-        //         break;
-        //     case 'haar':
-        //         imgSrc = baseUrl + "haar.jpg";
-        //         break;
-        //     case 'equalization':
-        //         imgSrc = baseUrl + "equalization.jpg";
-        //         break;
-        //     default:
-        //         alert("Unknown filter type");
-        //         return;
-        // }
-
-        // document.getElementById('additionalImage').src = imgSrc;
+       
     };
-
-    // Add event listeners to buttons
-    // document.querySelector('button[onclick="updateImage(\'histogram\')"]').addEventListener('click', function() {
-    //     updateImage('histogram');
-    // });
-    // document.querySelector('button[onclick="updateImage(\'gaussian_noise\')"]').addEventListener('click', function() {
-    //     updateImage('gaussian');
-    // });
-    // document.querySelector('button[onclick="updateImage(\'haar\')"]').addEventListener('click', function() {
-    //     updateImage('haar');
-    // });
-    // document.querySelector('button[onclick="updateImage(\'equalization\')"]').addEventListener('click', function() {
-    //     updateImage('equalization');
-    // });
     document.querySelector('.submit').addEventListener('click', uploadFile);
 
 });
