@@ -75,20 +75,15 @@ def for_load_aip_img():
     img = db.users_createphoto.find_one({"name" : session["name"]})
     if img is not None:
         gray_img = img.get("gray_img")
-        if updatetype == "histogram":
-            update_img = aip.img_to_histogram(gray_img)
-            print("AAAAAAAAAAAAAAAA")
-        elif updatetype == "gaussion_noise":
-            update_img = aip.img_to_gaussion_noise(gray_img)
-        elif updatetype == "haar_wavelet":
-            update_img = aip.img_to_haar_wavelet(gray_img)
-        elif updatetype == "histogram_equalization":
-            update_img = aip.img_to_histogram_equalization(gray_img)
-            
+        update_functions = {
+            "histogram": aip.img_to_histogram,
+            "gaussion_noise": aip.img_to_gaussion_noise,
+            "haar_wavelet": aip.img_to_haar_wavelet,
+            "histogram_equalization": aip.img_to_histogram_equalization}
+        update_img = update_functions[updatetype](gray_img)# 確保 updatetype 一定存在於 update_functions 中
         db.users_createphoto.update_one(
             {"name": session["name"]},           # 查找條件
-            {"$set": { updatetype : update_img}})  # 使用 $push 新增資料到 photo 欄位
-        print("BBBBBBBBBBBBBBBB")
+            {"$set": { updatetype : update_img}})  # 使用 $set 新增資料到 photo 欄位
         return jsonify({updatetype : update_img})
     return jsonify(success = False)
 
